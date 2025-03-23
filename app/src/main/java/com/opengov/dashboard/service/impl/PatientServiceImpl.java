@@ -134,10 +134,10 @@ public class PatientServiceImpl implements PatientService {
             filterMap.put("diagnosis", new FilterCriteria(filterObject.getDiagnosis().getOperator().getValue(),
                     filterObject.getDiagnosis().getValue()));
         }
-        if (filterObject.getDoctor() != null) {
+       /* if (filterObject.getDoctor() != null) {
             filterMap.put("doctor", new FilterCriteria(filterObject.getDoctor().getOperator().getValue(),
                     filterObject.getDoctor().getValue()));
-        }
+        }*/
         if (filterObject.getLastVisitAfter() != null) {
             filterMap.put("lastVisitAfter", new FilterCriteria(filterObject.getLastVisitAfter().getOperator().getValue(),
                     filterObject.getLastVisitAfter().getValue()));

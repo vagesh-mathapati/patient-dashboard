@@ -277,20 +277,6 @@ components:
               minLength: 1
               maxLength: 200
               example: "diabetes"
-        doctor:
-          type: object
-          properties:
-            operator:
-              type: string
-              enum:
-                - CONTAINS
-                - EQUALS
-              example: "EQUALS"
-            value:
-              type: string
-              minLength: 1
-              maxLength: 200
-              example: "Dr. Smith"
         lastVisitAfter:
           type: object
           properties:
@@ -303,6 +289,7 @@ components:
             value:
               type: string
               format: date
+              default: "2021-01-01"
               example: "2021-01-01"
     patientsResponse:
       type: object
