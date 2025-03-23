@@ -1,0 +1,17 @@
+replicaCount: 1
+nameOverride: "patient-dashboard"
+fullnameOverride: "patient-dashboard"
+actuator:
+  port: 9090
+readiness:
+  path: "/actuator/health/readiness"
+liveness:
+  path: "/actuator/health/liveness"
+appsecurity:
+  enabled: false
+  tlsEnabled: false
+ingress:
+  enabled: true
+  path: /api/analytics/
+  gateway:
+    name: istio-system/default-ingressgateway

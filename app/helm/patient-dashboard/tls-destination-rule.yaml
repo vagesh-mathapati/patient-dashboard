@@ -1,0 +1,21 @@
+
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ include "patient-dashboard.name" . }}
+    helm.sh/chart: {{ include "patient-dashboard.chart" . }}
+  name: patient-dashboard-dr
+spec:
+  host: patient-dashboard.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      {{- if .Values.appsecurity.tlsEnabled }}
+      mode: SIMPLE
+      {{- else }}
+      mode: DISABLE
+      {{- end }}

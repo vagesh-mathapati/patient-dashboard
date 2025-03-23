@@ -1,0 +1,70 @@
+{{- if .Values.ingress.enabled -}}
+  {{- $fullName := include "patient-dashboard.fullname" . -}}
+  {{- $ingressPath := .Values.ingress.path -}}
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ $fullName }}-virtualservice
+  labels:
+    app.kubernetes.io/name: {{ include "patient-dashboard.name" . }}
+    helm.sh/chart: {{ include "patient-dashboard.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - {{ .Values.ingress.gateway.name }}
+  http:
+    - match:
+        - uri:
+            prefix: {{ $ingressPath }}
+      rewrite:
+        uri: {{ $ingressPath }}
+      route:
+        - destination:
+            port:
+              number: 8080
+            host: {{ $fullName }}{{ if .Values.appsecurity.tlsEnabled }}.{{ .Release.Namespace }}.svc.cluster.local{{ end }}
+      {{- if .Values.ingress.cors.enabled }}
+      corsPolicy:
+        {{- if .Values.ingress.cors.allowOrigins }}
+        allowOrigins:
+        {{- range $origin := .Values.ingress.cors.origins }}
+        - regex: {{ $origin }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.ingress.cors.allowMethods }}
+        allowMethods:
+        {{- range $method := .Values.ingress.cors.methods }}
+        - {{ $method }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.ingress.cors.allowHeaders }}
+        allowHeaders:
+        {{- range $headers := .Values.ingress.cors.headers }}
+        - {{ $headers }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.ingress.cors.exposeHeaders }}
+        exposeHeaders:
+        {{- range $headers := .Values.ingress.cors.exposeHeaders }}
+        - {{ $headers }}
+        {{- end }}
+        {{- end }}
+        allowCredentials: {{ .Values.ingress.cors.allowCredentials }}
+        maxAge: {{ quote .Values.ingress.cors.maxAge }}
+        {{- end }}
+  {{- if .Values.appsecurity.tlsEnabled }}
+  tls:
+    - match:
+        - port: 443
+          sniHosts:
+            - '*'
+      route:
+        - destination:
+            host: {{ $fullName }}.{{ .Release.Namespace }}.svc.cluster.local
+            port:
+              number: 8443
+  {{- end }}
+  {{- end }}

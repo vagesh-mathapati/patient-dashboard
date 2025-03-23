@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "patient-dashboard.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "patient-dashboard.name" . }}
+    helm.sh/chart: {{ include "patient-dashboard.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    defaultTenantConfigMapName: default-tenant-configmap
+    uwf-patient-dashboard: admin-widget-uwf
+    uwf-patient-dashboard-analytics: analytics-admin-widget-uwf
+    uwf-patient-dashboard-workflow: workflow-admin-widget-uwf
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: 8080
+      {{- if .Values.appsecurity.tlsEnabled }}
+      targetPort: https
+      {{- else }}
+      targetPort: http
+      {{- end }}
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePorts.http)))}}
+      nodePort: {{ .Values.service.nodePorts.http }}
+      {{- end }}
+    - name: https
+      port: 8443
+      targetPort: https
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePorts.https)))}}
+      nodePort: {{ .Values.service.nodePorts.https }}
+      {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "patient-dashboard.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

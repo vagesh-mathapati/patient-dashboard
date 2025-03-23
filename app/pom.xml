@@ -31,6 +31,10 @@
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
 		<openapi-generator-version>7.10.0</openapi-generator-version>
+		<docker.registry>temp-docker-hosted.temp.com</docker.registry>
+		<docker.base.image>gcr.io/distroless/java17-debian12</docker.base.image>
+		<docker.image.name.appender />
+		<docker.image.name>${project.artifactId}${docker.image.name.appender}</docker.image.name>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -155,7 +159,31 @@
 					</execution>
 				</executions>
 			</plugin>
-
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>3.4.4</version>
+				<configuration>
+					<allowInsecureRegistries>true</allowInsecureRegistries>
+					<from>
+						<image>${docker.base.image}</image>
+					</from>
+					<to>
+						<image>${docker.registry}/${docker.image.name}</image>
+						<tags>
+							<tag>${project.version}</tag>
+						</tags>
+					</to>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>dockerBuild</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 

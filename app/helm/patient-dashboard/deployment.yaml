@@ -1,0 +1,222 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "patient-dashboard.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "patient-dashboard.name" . }}
+    helm.sh/chart: {{ include "patient-dashboard.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "patient-dashboard.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "patient-dashboard.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        {{- if .Values.podAnnotations }}
+        {{ toYaml .Values.podAnnotations | nindent 8 }}
+        {{- end }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{ toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: ADMIN_LOG_LEVEL
+              value: "{{ .Values.logConfig.adminLogLevel}}"
+            - name: BASE_PATH
+              value: "{{ .Values.ingress.path }}"
+            - name: JAVA_TOOL_OPTIONS
+              value: "{{ .Values.jvm.heapOptions | default ""}}"
+            - name: APP_SECURITY_ENABLED
+              value: "{{ .Values.appsecurity.enabled }}"
+            - name: APP_SECURITY_CLIENT
+              value: "{{ .Values.appsecurity.client }}"
+            - name: APP_SECURITY_TLS_ENABLED
+              value: "{{ .Values.appsecurity.tlsEnabled }}"
+            - name: APP_ENABLE_SSL_INIT
+              value: "{{ .Values.appsecurity.enableSSLInit | default false }}"
+            - name: STORE_PATH
+              value: "/opt/app/keystore"
+            - name: CERT_FILE
+              value: "/mounted-certs/keystore/cert-chain.pem"
+            - name: KEY_FILE
+              value: "/mounted-certs/keystore/key.pem"
+            - name: CA_FILE
+              value: "/mounted-certs/truststore/root-cert.pem"
+            - name: IMPORT_TRUSTSTORE
+              value: "true"
+            - name: KEEP_EXPIRED_CAS
+              value: "true"
+            - name: EASG_USER_LIST
+              value: "srrot,craft,init,indas,rasaccess"
+            - name: TENANT_ATTRIBUTE_FILE_PATH
+              value: "/opt/config/tenantAttributeFile/tenant-attribute.json"
+            - name: SPRING_DATASOURCE_HIKARI_DATABASE_NAME
+              value: "{{ .Values.database.databaseName }}"
+            - name: DEPLOYMENT_INSTANCE_ID
+              value: "{{ .Values.deploymentInstanceId }}"
+            - name: DEFAULT_ADMIN_PASSWORD
+              value: "{{ .Values.defaultAdminPassword }}"
+            - name: CLUSTER_FQDN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.clusterConfig.secretName }}
+                  key: {{ .Values.clusterConfig.fqdnSecretKey }}
+            - name: SPRING_DATASOURCE_HIKARI_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.hostnameSecretKey }}
+            - name: SPRING_DATASOURCE_HIKARI_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.portSecretKey }}
+            - name: SPRING_DATASOURCE_HIKARI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.usernameSecretKey }}
+            #Setting password as blank forces app to read password from secret file
+            {{- if .Values.database.useSecret }}
+            - name: SPRING_DATASOURCE_HIKARI_PASSWORD
+              value: 
+            {{- end }}
+            # ACCS ENV VARIABLES
+            - name: KEYCLOAK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.authService.secret.name }}
+                  key: {{ .Values.authService.secret.key }}
+            - name: KEYCLOAK_URL
+              value: {{ .Values.authService.url }}
+            - name: KEYCLOAK_EXT_URL
+              value: "{{ .Values.authService.authUrl }}"
+            - name: AUTHNZ_SVC
+              value: {{ .Values.global.cluster_fqdn | default "auth-service-http.platform.svc:8080" }}
+            - name: DEFAULT_TENANT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: default-tenant-configmap
+                  key: default.tenantid
+            - name: ACCESS_TOKEN_LIFESPAN
+              value: "{{ .Values.token.accessTokenLifeSpan }}"
+            - name: REFRESH_TOKEN_LIFESPAN
+              value: "{{ .Values.token.refreshTokenLifeSpan }}"
+            - name: OFFLINE_SESSION_IDLE_TIME
+              value: "{{ .Values.token.offlineSessionIdleTime }}"
+            - name: OFFLINE_SESSION_MAX_TIME
+              value: "{{ .Values.token.offlineSessionMaxTime }}"
+            - name: SSO_SESSION_MAX_DURATION
+              value: "{{ .Values.token.ssoSessionMaxDuration }}"
+            - name: KEYCLOAK_CONNECTION_POOL_SIZE
+              value: "{{ .Values.keycloakConnectionPoolSize }}"
+            - name: KEYCLOAK_CLIENT_VERSION
+              value: "{{ .Values.keycloakClientVersion }}"
+            - name: RES_UE_THREADS_PER_GB
+              value: "{{ .Values.resources.userevents_threadfactor }}"
+            - name: KK_ENABLE_DISABLE_SECURITY_PERAMETERS
+              value: "{{ .Values.headers.keycloak.security.enablesecurity }}"
+            - name: KK_ENABLE_DISABLE_SECURITY_PERAMETERS_UPDATE
+              value: "{{ .Values.headers.keycloak.security.enableupdatesecurity }}"         
+            - name: KK_CONTENT_SEC_POLICY_REPORT_ONLY
+              value: {{ .Values.headers.keycloak.security.contentSecurityPolicyReportOnly }}
+            - name: KK_XCONTENT_TYPE_OPTIONS
+              value: {{ .Values.headers.keycloak.security.xContentTypeOptions }}
+            - name: KK_XROBOTS_TAG
+              value: {{ .Values.headers.keycloak.security.xRobotsTag }}
+            - name: KK_XFRAME_OPTIONS
+              value: {{ .Values.headers.keycloak.security.xFrameOptions }}
+            - name: KK_CONTENT_SECURITY_POLICY
+              value: {{ .Values.headers.keycloak.security.contentSecurityPolicy }}
+            - name: KK_XXSS_PROTECTION
+              value: {{ .Values.headers.keycloak.security.xXSSProtection }}
+            - name: KK_STRICT_TRANSPORT_SECURITY
+              value: {{ .Values.headers.keycloak.security.strictTransportSecurity }}
+            - name: KK_ENABLE_LOGIN_SAVE_EVENTS
+              value: "{{ .Values.headers.keycloak.eventconfig.enableLoginSaveEvents }}"
+            - name: KK_LOGIN_SAVED_EVENT_TYPES
+              value: {{ .Values.headers.keycloak.eventconfig.loginSavedEventTypes }}
+            - name: KK_LOGIN_EVENTS_EXPIRATION
+              value: "{{ .Values.headers.keycloak.eventconfig.loginEventsExpiration }}"
+            - name: KK_ENABLE_ADMIN_SAVE_EVENTS
+              value: "{{ .Values.headers.keycloak.eventconfig.enableAdminSaveEvents }}"
+            - name: EXPIRY_DATE_ENABLED
+              value: "{{ .Values.expirydate.enabled }}"
+            - name: ADD_IDP_LINK
+              value: "{{ .Values.rbac.user.addIDPLink }}"
+            - name: ADD_LOGIN_FLOWS
+              value: "{{ .Values.rbac.idp.addLoginFlows }}"
+            - name: ADD_LINKS_AVAYA_ACCOUNT
+              value: "{{ .Values.addLinksForAvayaAccount }}"
+            - name: ENABLE_CUSTOM_PROVIDER_FEATURE
+              value: "{{ .Values.enableCustomProviderFeature }}"
+            - name: UPDATE_CUSTOM_PASSWORD_POLICY
+              value: "{{ .Values.updateCustomPasswordPolicy }}"
+            - name: WATCHER_DEL_MAX_RETRIES
+              value: "{{ .Values.rbac.watcher.maxDelRetryAttempts }}"
+            - name: WATCHER_DEL_SLEEP_INTERVAL
+              value: "{{ .Values.rbac.watcher.sleepBtwDelRetries }}"
+            - name: WATCHER_CLIENT_CREATION_MAX_RETRIES
+              value: "{{ .Values.rbac.watcher.maxClientCreationRetries }}" 
+            - name: PRE_AUTH_ACCOUNTS
+              value: {{ .Values.rbac.security.preAuth.accounts }}
+            - name: BPO_WATCHER_MAXRETRYCOUNT
+              value: "{{ .Values.bpo.watcher.maxRetryCount }}"
+            - name: AACS_AUTH_LOG_LEVEL
+              value: {{ .Values.rbac.auth.loglevel | default "INFO"}}
+            - name: AACS_TOMCAT_LOG_LEVEL
+              value: {{ .Values.rbac.tomcat.loglevel | default "INFO"}}
+            - name: AACS_HTTP_LOG_LEVEL
+              value: {{ .Values.rbac.http.loglevel | default "INFO"}}
+            - name: AACS_KEYCLOAK_LOG_LEVEL
+              value: {{ .Values.rbac.keycloak.loglevel | default "INFO"}}
+          ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/admin/actuator/health/liveness
+              port: http
+            failureThreshold: 3
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 25
+          readinessProbe:
+            httpGet:
+              path: /api/admin/actuator/health/readiness
+              port: http
+            failureThreshold: 3
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 25
+          volumeMounts:
+          - name: postgres-db-secret
+            mountPath: "/var/secrets"
+                                     
+          {{- with .Values.volumeMounts }}
+          {{ tpl . $ | indent 10 }}
+          {{- end }}
+      volumes:
+        - name: postgres-db-secret
+          secret:
+            secretName: {{ .Values.database.secretName }}
+            defaultMode: 0600
+            items:
+            - key: {{ .Values.database.passwordSecretKey }}
+              path: postgresdbpassword.txt
+      imagePullSecrets:
+        {{ toYaml .Values.image.pullSecrets | nindent 8 }}
+      serviceAccountName: {{ include "patient-dashboard.fullname" . }}
