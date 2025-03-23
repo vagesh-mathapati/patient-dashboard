@@ -1,0 +1,413 @@
+openapi: 3.0.3
+info:
+  title: Healthcare Analytics Dashboard API
+  description: API for querying patient records and managing cohort selections
+  version: 1.0.0
+servers:
+  - url: https://patient-dashboard.opengov.com/api/
+
+tags:
+  - name: Patient Details
+    description: "APIs to get Patient Details using filters in specific hospital"
+  - name: Cohorts
+    description: "APIs to manage Cohorts for patient selection sets in specific hospital"
+paths:
+  /v1/hospitals/{hospitalId}/patients:
+    post:
+      tags:
+        - Patient Details
+      summary: Get a list of patients
+      description: Retrieve patient records with filtering options
+      operationId: getPatients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/filterObject'
+      parameters:
+        - $ref: '#/components/parameters/hospitalId'
+        - $ref: '#/components/parameters/pageNumber'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: A list of patients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/patientsResponse'
+        '400':
+          description: Invalid request parameters
+        '500':
+          description: Server error
+  /v1/hospitals/{hospitalId}/patients-details:
+    post:
+      tags:
+        - Patient Details
+      summary: Get a list of patients along with their visit details
+      description: Retrieve patient records with their visit details by filtering options
+      operationId: getPatientsDetails
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/filterObject'
+      parameters:
+        - $ref: '#/components/parameters/hospitalId'
+        - $ref: '#/components/parameters/pageNumber'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: A list of patients with details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/patientsResponse'
+        '400':
+          description: Invalid request parameters
+        '500':
+          description: Server error
+  /v1/hospitals/{hospitalId}/cohorts:
+    post:
+      tags:
+        - Cohorts
+      summary: Create a new cohort selection set
+      description: Save a cohort query for later reuse
+      operationId: createCohort
+      parameters:
+        - $ref: '#/components/parameters/hospitalId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CohortRequest'
+      responses:
+        '201':
+          description: Cohort created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CohortResponse'
+        '400':
+          description: Invalid input
+
+    get:
+      tags:
+          - Cohorts
+      summary: Get a list of saved cohorts
+      description: Retrieve previously saved patient cohort selection sets
+      operationId: getCohorts
+      parameters:
+          - $ref: '#/components/parameters/hospitalId'
+      responses:
+        '200':
+          description: A list of saved cohorts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CohortResponse'
+
+  /v1/hospitals/{hospitalId}/cohorts/{cohortId}:
+    get:
+      tags:
+        - Cohorts
+      summary: Get cohort details
+      description: Retrieve details of a specific saved cohort
+      operationId: getCohortDetails
+      parameters:
+        - $ref: '#/components/parameters/hospitalId'
+        - $ref: '#/components/parameters/cohortId'
+      responses:
+        '200':
+          description: Cohort details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CohortResponse'
+        '404':
+          description: Cohort not found
+    put:
+      tags:
+        - Cohorts
+      summary: Update a saved cohort
+      description: Modify the filters of a saved cohort
+      operationId: updateCohort
+      parameters:
+        - $ref: '#/components/parameters/hospitalId'
+        - $ref: '#/components/parameters/cohortId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CohortRequest'
+      responses:
+        '200':
+          description: Cohort updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CohortResponse'
+        '404':
+          description: Cohort not found
+        '400':
+          description: Invalid input
+    delete:
+      tags:
+        - Cohorts
+      summary: Delete a saved cohort
+      description: Remove a saved cohort from the system
+      operationId: deleteCohort
+      parameters:
+        - $ref: '#/components/parameters/hospitalId'
+        - $ref: '#/components/parameters/cohortId'
+      responses:
+        '204':
+          description: Cohort deleted successfully
+        '404':
+          description: Cohort not found
+  /v1/hospitals/{hospitalId}/cohorts/{cohortId}:execute:
+    post:
+      tags:
+        - Cohorts
+      summary: Execute a saved cohort
+      description: Retrieve patient records based on a saved cohort
+      operationId: executeCohort
+      parameters:
+        - $ref: '#/components/parameters/hospitalId'
+        - $ref: '#/components/parameters/cohortId'
+        - $ref: '#/components/parameters/pageNumber'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: A list of patients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/patientsResponse'
+        '404':
+          description: Cohort not found
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    Patient:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "a4c2c9b5-0e47-491d-b139-dc48cccdea72"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        age:
+          type: integer
+          example: 45
+        gender:
+          type: string
+          enum:
+          - MALE
+          - FEMALE
+        diagnosis:
+          type: array
+          items:
+            type: string
+          example:
+          - "diabetes"
+          - "hypertension"
+        lastVisitDate:
+          type: string
+          format: date
+          example: "2021-01-01"
+        visitCount:
+          type: integer
+          example: 3
+        visitCountLastYear:
+          type: integer
+          example: 3
+        doctorName:
+          type: string
+          example: "Dr. Smith"
+
+    CohortRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Diabetic Patients 50+"
+        filters:
+          $ref: '#/components/schemas/filterObject'
+    filterObject:
+      type: object
+      properties:
+        age:
+          type: object
+          properties:
+            operator:
+              type: string
+              minLength: 1
+              maxLength: 2
+              example: ">"
+            value:
+              type: integer
+              minimum: 0
+              maximum: 150
+              example: 50
+        diagnosis:
+          type: object
+          properties:
+            operator:
+              type: string
+              enum:
+                - CONTAINS
+                - EQUALS
+              example: "CONTAINS"
+            value:
+              type: string
+              minLength: 1
+              maxLength: 200
+              example: "diabetes"
+        doctor:
+          type: object
+          properties:
+            operator:
+              type: string
+              enum:
+                - CONTAINS
+                - EQUALS
+              example: "EQUALS"
+            value:
+              type: string
+              minLength: 1
+              maxLength: 200
+              example: "Dr. Smith"
+        lastVisitAfter:
+          type: object
+          properties:
+            operator:
+              type: string
+              enum:
+                - AFTER
+                - BEFORE
+              example: "AFTER"
+            value:
+              type: string
+              format: date
+              example: "2021-01-01"
+    patientsResponse:
+      type: object
+      properties:
+        patients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Patient'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        links:
+          $ref: '#/components/schemas/Links'
+          example:
+            prev: "/api/v1/hospitals/1d831e1b-4d9f-4446-85d9-e05b2652557b/patients?pageNumber=1&pageSize=100"
+            next: "/api/v1/hospitals/1d831e1b-4d9f-4446-85d9-e05b2652557b/patients?pageNumber=3&pageSize=100"
+    Pagination:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+          description: The current page number.
+          example: 2
+        pageSize:
+          type: integer
+          description: The max number of records that can be retrieved on this page.
+          example: 10
+        total:
+          type: integer
+          description: The total number of records.
+          example: 8000
+    Links:
+      type: object
+      properties:
+        prev:
+          type: string
+          description: URL of the previous page. Blank if currently on the first page.
+          example: "/api/v1/hospitals/1d831e1b-4d9f-4446-85d9-e05b2652557b/patients?pageNumber=1&pageSize=100"
+        next:
+          type: string
+          description: URL of the next page. Blank if currently on the last page.
+          example: "/api/v1/hospitals/1d831e1b-4d9f-4446-85d9-e05b2652557b/patients?pageNumber=3&pageSize=100"
+    CohortResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "The unique Cohort ID that represents the saved cohort."
+          readOnly: true
+          minLength: 36
+          maxLength: 36
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          example: "c8c2909d-75e9-484a-94c0-b7e8d29771fe"
+        name:
+          type: string
+          description: "The name of the saved cohort."
+          example: "Diabetic Patients 50+"
+        filters:
+          type: object
+          $ref: '#/components/schemas/filterObject'
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+  parameters:
+    hospitalId:
+      name: hospitalId
+      description: "The unique identifier of the hospital"
+      required: true
+      in: path
+      schema:
+        type: string
+        example: 1d831e1b-4d9f-4446-85d9-e05b2652557b
+        minLength: 36
+        maxLength: 36
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    cohortId:
+      name: cohortId
+      in: path
+      description: "The unique Cohort ID that represents the saved cohort."
+      required: true
+      schema:
+        type: string
+        example: c8c2909d-75e9-484a-94c0-b7e8d29771fe
+        minLength: 36
+        maxLength: 36
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    pageNumber:
+      name: pageNumber
+      in: query
+      description: The page number of the records to retrieve. Default value is 0.
+      schema:
+        type: integer
+        format: int32
+        default: 0
+        example: 2
+    pageSize:
+      name: pageSize
+      in: query
+      description: The max number of records to retrieve per page. Default value is 10, Any value like 10,20,...,500,..,10000 is allowed.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        example: 500
+        default: 10
+        minimum: 10
+        maximum: 10000
+
