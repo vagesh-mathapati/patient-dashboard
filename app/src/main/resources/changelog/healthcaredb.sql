@@ -63,3 +63,13 @@ CREATE TABLE IF NOT EXISTS cohorts (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- changeset opengov:healthcaredb-6
+CREATE INDEX idx_patients_age ON patients (age);
+CREATE INDEX idx_visits_visit_date ON visits (visit_date);
+CREATE INDEX idx_visits_patient_id ON visits (patient_id);
+
+-- changeset opengov:healthcaredb-7
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX idx_visits_diagnosis_trgm ON visits USING GIN (diagnosis gin_trgm_ops);
+

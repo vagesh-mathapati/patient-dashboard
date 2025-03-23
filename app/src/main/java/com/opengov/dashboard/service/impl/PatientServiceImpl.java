@@ -13,10 +13,12 @@ import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -72,6 +74,7 @@ public class PatientServiceImpl implements PatientService {
         }catch (Exception e){
             log.error("Error while getting patients for hospitalId: {}, filterObject: {}, pageNumber: {}, pageSize: {}",
                     hospitalId, filterObject, pageNumber, pageSize, e);
+            throw e;
         }
         return patientsResponse;
     }
@@ -106,9 +109,15 @@ public class PatientServiceImpl implements PatientService {
 
             log.info("Found {} patients for hospitalId: {}, filterObject: {}, pageNumber: {}, pageSize: {}",
                     patientVisitSummaryViewPage.getTotalElements(), hospitalId, filterObject, pageNumber, pageSize);
-        }catch (Exception e){
+        }catch (InvalidDataAccessApiUsageException e){
             log.error("Error while getting patients for hospitalId: {}, filterObject: {}, pageNumber: {}, pageSize: {}",
                     hospitalId, filterObject, pageNumber, pageSize, e);
+            throw e;
+        }
+        catch (Exception e){
+            log.error("Error while getting patients for hospitalId: {}, filterObject: {}, pageNumber: {}, pageSize: {}",
+                    hospitalId, filterObject, pageNumber, pageSize, e);
+            throw e;
         }
         return patientsResponse;
     }

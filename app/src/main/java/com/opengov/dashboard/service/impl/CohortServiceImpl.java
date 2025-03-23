@@ -1,5 +1,6 @@
 package com.opengov.dashboard.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opengov.dashboard.jpa.dao.CohortDao;
 import com.opengov.dashboard.jpa.repository.CohortsRepo;
@@ -9,13 +10,16 @@ import com.opengov.dashboard.org.openapi.model.FilterObject;
 import com.opengov.dashboard.org.openapi.model.PatientsResponse;
 import com.opengov.dashboard.service.interfaces.CohortService;
 import com.opengov.dashboard.service.interfaces.PatientService;
+import io.fabric8.kubernetes.client.ResourceNotFoundException;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -74,12 +78,18 @@ public class CohortServiceImpl implements CohortService {
 
                 cohortResponse.setCreatedAt(cohortDao.getCreatedAt().toString());
                 cohortResponse.setUpdatedAt(cohortDao.getUpdatedAt().toString());
-            }catch (Exception ex){
+            }catch( JsonProcessingException ex){
                 log.error("Error while converting filter object", ex);
+            }
+            catch (Exception ex){
+                log.error("Error while converting filter object", ex);
+                throw ex;
             }
             return cohortResponse;
         }
-        return null;
+        else{
+            throw new ResourceNotFoundException(cohortId + " Cohort not found");
+        }
     }
 
     @Override
@@ -91,6 +101,32 @@ public class CohortServiceImpl implements CohortService {
             ,pageNumber, pageSize);
           }
         return null;
+    }
+
+    @Override
+    public List<CohortResponse> getCohorts(String hospitalId) {
+        List<CohortDao> cohortDaoList = cohortsRepo.findAll();
+        List<CohortResponse> cohortResponseList = new ArrayList<>();
+        cohortDaoList.forEach(cohortDao -> {
+            CohortResponse cohortResponse = new CohortResponse();
+            cohortResponse.setId(cohortDao.getId().toString());
+            cohortResponse.setName(cohortDao.getName());
+            try {
+                FilterObject filterObject = objectMapper.readValue(cohortDao.getFilter(), FilterObject.class);
+                cohortResponse.setFilters(filterObject);
+
+                cohortResponse.setCreatedAt(cohortDao.getCreatedAt().toString());
+                cohortResponse.setUpdatedAt(cohortDao.getUpdatedAt().toString());
+            }catch( JsonProcessingException ex){
+                log.error("Error while converting filter object", ex);
+            }
+            catch (Exception ex){
+                log.error("Error while converting filter object", ex);
+                throw ex;
+            }
+            cohortResponseList.add(cohortResponse);
+        });
+        return cohortResponseList;
     }
 
 }

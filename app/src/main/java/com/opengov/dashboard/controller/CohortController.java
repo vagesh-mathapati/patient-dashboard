@@ -41,7 +41,7 @@ public class CohortController implements CohortsApi {
 
     @Override
     public ResponseEntity<List<CohortResponse>> getCohorts(String hospitalId) {
-        return CohortsApi.super.getCohorts(hospitalId);
+        return ResponseEntity.ok(cohortService.getCohorts(hospitalId));
     }
 
     @Override
